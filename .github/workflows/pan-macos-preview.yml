@@ -1,0 +1,28 @@
+name: PAN macOS preview
+
+on:
+  push:
+    branches:
+      - codex/pan-rust-desktop-architecture
+    paths:
+      - "Cargo.toml"
+      - "src/rust/pan-model/**"
+      - "src/rust/pan-desktop/**"
+      - ".github/workflows/pan-macos-preview.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Build PAN preview
+        run: cargo +stable build --release -p pan-desktop
+      - name: Package macOS app
+        run: zsh src/rust/pan-desktop/package-macos.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PAN-Preview-macOS
+          path: dist/PAN-Preview-macOS.zip

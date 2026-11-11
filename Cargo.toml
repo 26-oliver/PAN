@@ -4,6 +4,8 @@ members = [
     "src/rust/vlcrs-macros",
     "src/rust/vlcrs-messages",
     "src/rust/vlcrs-utils",
+    "src/rust/pan-model",
+    "src/rust/pan-desktop",
     "modules/logger/telegraf-rs/"
 ]
 resolver = "2"
