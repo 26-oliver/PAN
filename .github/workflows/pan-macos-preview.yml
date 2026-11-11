@@ -1,0 +1,47 @@
+name: PAN macOS preview
+
+on:
+  push:
+    branches:
+      - codex/pan-rust-desktop-architecture
+    paths:
+      - "Cargo.toml"
+      - "src/rust/pan-model/**"
+      - "src/rust/pan-desktop/**"
+      - ".github/workflows/pan-macos-preview.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Build PAN preview
+        run: cargo +stable build --release -p pan-desktop
+      - name: Package macOS app
+        run: |
+          APP="dist/PAN Preview.app"
+          mkdir -p "$APP/Contents/MacOS"
+          cp target/release/pan-desktop "$APP/Contents/MacOS/PAN Preview"
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>PAN Preview</string>
+            <key>CFBundleDisplayName</key><string>PAN Preview</string>
+            <key>CFBundleIdentifier</key><string>com.pan.preview</string>
+            <key>CFBundleVersion</key><string>0.1.0</string>
+            <key>CFBundleShortVersionString</key><string>0.1.0</string>
+            <key>CFBundleExecutable</key><string>PAN Preview</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+          plutil -lint "$APP/Contents/Info.plist"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" dist/PAN-Preview-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PAN-Preview-macOS
+          path: dist/PAN-Preview-macOS.zip
