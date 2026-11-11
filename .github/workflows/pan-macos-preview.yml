@@ -25,6 +25,15 @@ jobs:
           APP="dist/PAN Preview.app"
           mkdir -p "$APP/Contents/MacOS"
           cp target/release/pan-desktop "$APP/Contents/MacOS/PAN Preview"
+          ICONSET="$APP/Contents/Resources/PAN.iconset"
+          mkdir -p "$ICONSET"
+          for size in 16 32 128 256 512; do
+            sips -z "$size" "$size" src/rust/pan-desktop/assets/pan-logo.png --out "$ICONSET/icon_${size}x${size}.png" >/dev/null
+            double=$((size * 2))
+            sips -z "$double" "$double" src/rust/pan-desktop/assets/pan-logo.png --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/PAN.icns"
+          rm -rf "$ICONSET"
           cat > "$APP/Contents/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -35,6 +44,7 @@ jobs:
             <key>CFBundleVersion</key><string>0.1.0</string>
             <key>CFBundleShortVersionString</key><string>0.1.0</string>
             <key>CFBundleExecutable</key><string>PAN Preview</string>
+            <key>CFBundleIconFile</key><string>PAN</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>NSHighResolutionCapable</key><true/>
           </dict></plist>
