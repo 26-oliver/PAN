@@ -2,6 +2,9 @@ use eframe::egui::{self, Color32, RichText};
 use pan_model::{LibrarySource, PanState};
 use rfd::FileDialog;
 
+mod vlc;
+use vlc::Vlc;
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Page {
     Home,
@@ -17,6 +20,8 @@ struct PanPreview {
     playlist_name: String,
     notice: String,
     logo: Option<egui::TextureHandle>,
+    vlc: Option<Vlc>,
+    engine_status: String,
 }
 
 impl Default for PanPreview {
@@ -28,6 +33,8 @@ impl Default for PanPreview {
             playlist_name: String::new(),
             notice: String::new(),
             logo: None,
+            vlc: None,
+            engine_status: String::new(),
         }
     }
 }
@@ -41,6 +48,13 @@ impl PanPreview {
             let color = egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
             app.logo = Some(ctx.load_texture("pan-logo", color, egui::TextureOptions::NEAREST));
         }
+        match Vlc::load() {
+            Ok(vlc) => {
+                app.engine_status = "libVLC 4 conectado".into();
+                app.vlc = Some(vlc);
+            }
+            Err(error) => app.engine_status = error,
+        }
         app
     }
 
@@ -52,8 +66,14 @@ impl PanPreview {
 
     fn open_file(&mut self) {
         if let Some(path) = FileDialog::new().pick_file() {
-            self.state.open_file(path);
-            self.notice = "Archivo seleccionado. La reproducción llegará con libVLC.".into();
+            self.state.open_file(path.clone());
+            self.notice = match &mut self.vlc {
+                Some(vlc) => match vlc.play_file(&path) {
+                    Ok(()) => "Reproduciendo con libVLC".into(),
+                    Err(error) => error,
+                },
+                None => "Archivo seleccionado; el motor libVLC 4 no está disponible.".into(),
+            };
             self.page = Page::Home;
         }
     }
@@ -82,7 +102,7 @@ impl PanPreview {
         ui.heading("Ahora");
         if let Some(item) = self.state.playback.current() {
             ui.label(RichText::new(&item.title).size(22.0));
-            ui.label("Vista previa de la interfaz · reproducción aún no disponible");
+            ui.label("El vídeo se abre en una ventana de libVLC; la integración en el panel está pendiente.");
         } else {
             ui.label("No hay ningún archivo abierto");
         }
@@ -141,8 +161,15 @@ impl PanPreview {
         ui.horizontal(|ui| {
             ui.text_edit_singleline(&mut self.url);
             if ui.button("Abrir URL").clicked() && !self.url.trim().is_empty() {
-                self.state.open_url(self.url.trim().to_owned());
-                self.notice = "URL seleccionada. La reproducción llegará con libVLC.".into();
+                let url = self.url.trim().to_owned();
+                self.state.open_url(url.clone());
+                self.notice = match &mut self.vlc {
+                    Some(vlc) => match vlc.play_url(&url) {
+                        Ok(()) => "Reproduciendo URL con libVLC".into(),
+                        Err(error) => error,
+                    },
+                    None => "URL seleccionada; el motor libVLC 4 no está disponible.".into(),
+                };
                 self.page = Page::Home;
             }
         });
@@ -174,15 +201,19 @@ impl eframe::App for PanPreview {
                 ui.add_space(24.0);
                 ui.separator();
                 ui.label("Vista previa de PAN");
+                ui.small(&self.engine_status);
             });
 
         egui::TopBottomPanel::bottom("pan_transport")
             .min_height(72.0)
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
-                    ui.label("◀");
-                    ui.label("▶");
-                    ui.label("■");
+                    if ui.add_enabled(self.vlc.is_some(), egui::Button::new("▶ / ⏸")).clicked() {
+                        if let Some(vlc) = &mut self.vlc { vlc.toggle_pause(); }
+                    }
+                    if ui.add_enabled(self.vlc.is_some(), egui::Button::new("■")).clicked() {
+                        if let Some(vlc) = &mut self.vlc { vlc.stop(); }
+                    }
                     ui.separator();
                     if let Some(item) = self.state.playback.current() {
                         ui.label(&item.title);
