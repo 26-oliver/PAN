@@ -16,6 +16,7 @@ struct PanPreview {
     url: String,
     playlist_name: String,
     notice: String,
+    logo: Option<egui::TextureHandle>,
 }
 
 impl Default for PanPreview {
@@ -26,11 +27,23 @@ impl Default for PanPreview {
             url: String::new(),
             playlist_name: String::new(),
             notice: String::new(),
+            logo: None,
         }
     }
 }
 
 impl PanPreview {
+    fn new(ctx: &egui::Context) -> Self {
+        let mut app = Self::default();
+        if let Ok(image) = image::load_from_memory(include_bytes!("../assets/pan-logo.png")) {
+            let rgba = image.to_rgba8();
+            let size = [rgba.width() as usize, rgba.height() as usize];
+            let color = egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
+            app.logo = Some(ctx.load_texture("pan-logo", color, egui::TextureOptions::NEAREST));
+        }
+        app
+    }
+
     fn nav_item(&mut self, ui: &mut egui::Ui, page: Page, label: &str) {
         if ui.selectable_label(self.page == page, label).clicked() {
             self.page = page;
@@ -146,7 +159,12 @@ impl eframe::App for PanPreview {
             .exact_width(220.0)
             .show(ctx, |ui| {
                 ui.add_space(18.0);
-                ui.label(RichText::new("PAN").size(32.0).strong().color(Color32::from_rgb(155, 130, 255)));
+                ui.horizontal(|ui| {
+                    if let Some(logo) = &self.logo {
+                        ui.image((logo.id(), egui::vec2(48.0, 48.0)));
+                    }
+                    ui.label(RichText::new("PAN").size(32.0).strong().color(Color32::from_rgb(155, 130, 255)));
+                });
                 ui.label("Play Anything Now");
                 ui.add_space(30.0);
                 self.nav_item(ui, Page::Home, "⌂  Inicio");
@@ -213,6 +231,6 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "PAN Preview",
         options,
-        Box::new(|_creation_context| Ok(Box::new(PanPreview::default()))),
+        Box::new(|creation_context| Ok(Box::new(PanPreview::new(&creation_context.egui_ctx)))),
     )
 }
