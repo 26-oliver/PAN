@@ -69,10 +69,7 @@ impl PlaybackQueue {
 pub enum LibrarySource {
     LocalFolder(PathBuf),
     LocalFile(PathBuf),
-    Provider {
-        provider: String,
-        source_id: String,
-    },
+    Provider { provider: String, source_id: String },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -124,6 +121,10 @@ impl Library {
 
     pub fn playlist(&self, name: &str) -> Option<&Playlist> {
         self.playlists.get(name)
+    }
+
+    pub fn playlists(&self) -> impl Iterator<Item = &Playlist> {
+        self.playlists.values()
     }
 
     pub fn add_to_playlist(&mut self, name: &str, location: MediaLocation) -> bool {

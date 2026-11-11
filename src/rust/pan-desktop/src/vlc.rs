@@ -61,7 +61,9 @@ impl Vlc {
                 Err(error) => last_error = error,
             }
         }
-        Err(format!("{last_error}. Instala una compilación de este fork de VLC 4 o define PAN_LIBVLC_PATH."))
+        Err(format!(
+            "{last_error}. Instala una compilación de este fork de VLC 4 o define PAN_LIBVLC_PATH."
+        ))
     }
 
     unsafe fn from_library(library: Library) -> Result<Self, String> {
