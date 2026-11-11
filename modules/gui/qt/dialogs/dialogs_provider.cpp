@@ -38,6 +38,7 @@
 #include "util/qt_dirs.hpp"
 #include "util/vlchotkeyconverter.hpp"
 #include "maininterface/mainctx.hpp"
+#include "medialibrary/medialib.hpp"
 
 /* The dialogs */
 #include "dialogs/bookmarks/bookmarks.hpp"
@@ -64,6 +65,7 @@
 #include <QApplication>
 #include <QSignalMapper>
 #include <QFileDialog>
+#include <QDir>
 #include <QUrl>
 #include <QInputDialog>
 #include <QPointer>
@@ -792,6 +794,24 @@ QString DialogsProvider::getDirectoryDialog( qt_intf_t *p_intf )
     free( uri );
 
     return dir;
+}
+
+void DialogsProvider::addLibraryFolder()
+{
+    if (!p_intf->p_mi || !p_intf->p_mi->hasMediaLibrary())
+        return;
+
+    const QStringList schemes{QStringLiteral("file")};
+    const QUrl folder = QFileDialog::getExistingDirectoryUrl(
+        root, qtr("Add folder to library"), QUrl::fromLocalFile(QDir::homePath()),
+        QFileDialog::ShowDirsOnly, schemes);
+    if (folder.isEmpty())
+        return;
+
+    p_intf->p_mi->getMediaLibrary()->runOnMLThread(
+        this, [folder](vlc_medialibrary_t* ml) {
+            vlc_ml_add_folder(ml, qtu(folder.toString(QUrl::FullyEncoded)));
+        });
 }
 
 void DialogsProvider::PLOpenDir()
