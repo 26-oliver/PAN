@@ -49,7 +49,7 @@ impl Vlc {
         for path in candidates {
             // Loading a shared library executes its initializers. Only the
             // user-specified path or standard VLC installation paths are used.
-            let library = match unsafe { Library::new(&path) } {
+            let library = match unsafe { Library::new(path.as_path()) } {
                 Ok(library) => library,
                 Err(error) => {
                     last_error = error.to_string();
