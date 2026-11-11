@@ -247,6 +247,7 @@ public slots:
     void openNetDialog();
     void openCaptureDialog();
 
+    void addLibraryFolder();
     void PLOpenDir();
     void PLAppendDir();
 
