@@ -9,3 +9,4 @@ description = "PAN desktop interface preview"
 eframe = "0.37.0"
 rfd = "0.18.0"
 pan-model = { path = "../pan-model" }
+image = { version = "0.25", default-features = false, features = ["png"] }
