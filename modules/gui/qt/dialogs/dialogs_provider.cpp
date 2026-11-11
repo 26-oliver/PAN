@@ -808,10 +808,14 @@ void DialogsProvider::addLibraryFolder()
     if (folder.isEmpty())
         return;
 
-    p_intf->p_mi->getMediaLibrary()->runOnMLThread(
+    MediaLib* mediaLibrary = p_intf->p_mi->getMediaLibrary();
+    if (!mediaLibrary)
+        return;
+
+    mediaLibrary->runOnMLThread(
         this, [folder](vlc_medialibrary_t* ml) {
             vlc_ml_add_folder(ml, qtu(folder.toString(QUrl::FullyEncoded)));
-        });
+        }, "ML_FOLDER_ADD_QUEUE");
 }
 
 void DialogsProvider::PLOpenDir()
