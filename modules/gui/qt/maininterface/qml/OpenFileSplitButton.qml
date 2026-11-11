@@ -25,13 +25,14 @@ import VLC.Util
 Widgets.SplitButton {
     id: root
 
-    text: qsTr("Open File")
+    text: qsTr("Play file now")
 
     iconTxt: VLCIcons.ic_fluent_folder_open_24_regular
     iconSize: VLCStyle.fontSize_xxlarge
 
     model: [
         { text: qsTr("Open Multiple Files"), icon_svg: ":/menu/file.svg" },
+        { text: qsTr("Add folder to library"), icon_svg: ":/menu/folder.svg" },
         { text: qsTr("Open Directory"), icon_svg: ":/menu/folder.svg" },
         { text: qsTr("Open Disc"), icon_svg: ":/menu/disc.svg" },
         { text: qsTr("Open Network Stream"), icon_svg: ":/menu/network.svg" },
@@ -49,18 +50,21 @@ Widgets.SplitButton {
             DialogsProvider.openFileDialog()
             break
         case 1:
-            DialogsProvider.PLOpenDir()
+            DialogsProvider.addLibraryFolder()
             break
         case 2:
-            DialogsProvider.openDiscDialog()
+            DialogsProvider.PLOpenDir()
             break
         case 3:
-            DialogsProvider.openNetDialog()
+            DialogsProvider.openDiscDialog()
             break
         case 4:
-            DialogsProvider.openCaptureDialog()
+            DialogsProvider.openNetDialog()
             break
         case 5:
+            DialogsProvider.openCaptureDialog()
+            break
+        case 6:
             DialogsProvider.openUrlDialog()
             break
         default:
