@@ -16,4 +16,4 @@ done < pan.desktop > "$data/applications/pan.desktop"
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$data/applications"
 fi
-printf 'Instalado PAN. Elige Abrir con → PAN en el gestor de archivos.\n'
+printf 'PAN installed. Choose Open With → PAN in your file manager.\n'

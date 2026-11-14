@@ -18,7 +18,7 @@ $appKey = 'Software\Classes\Applications\pan.exe'
 $progId = 'Software\Classes\PAN.Media'
 Set-RegistryValue $appKey 'FriendlyAppName' 'PAN'
 Set-RegistryValue "$appKey\shell\open\command" '' $command
-Set-RegistryValue $progId '' 'Archivo multimedia PAN'
+Set-RegistryValue $progId '' 'PAN media file'
 Set-RegistryValue "$progId\DefaultIcon" '' ('"' + $icon + '",0')
 Set-RegistryValue "$progId\shell\open\command" '' $command
 Set-RegistryValue 'Software\RegisteredApplications' 'PAN' 'Software\PAN\Capabilities'
@@ -38,4 +38,4 @@ $shortcut.WorkingDirectory = $appDir
 $shortcut.IconLocation = "$icon,0"
 $shortcut.Save()
 
-Write-Host 'PAN instalado. En el Explorador, selecciona Abrir con > PAN.'
+Write-Host 'PAN installed. In File Explorer, choose Open with > PAN.'

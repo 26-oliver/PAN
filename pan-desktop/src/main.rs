@@ -1,5 +1,7 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+#[macro_use]
+mod locale;
 mod artwork;
 mod catalog;
 mod details;
@@ -41,6 +43,7 @@ struct Pan {
     network: String,
     fullscreen: bool,
     native_toolbar: bool,
+    toolbar_language: locale::Language,
     video: Option<TextureHandle>,
     logo: TextureHandle,
     seek: Option<f32>,
@@ -59,14 +62,15 @@ impl Pan {
         let ctx = &cc.egui_ctx;
         theme::install(ctx);
         let mut catalog = catalog::Catalog::load();
+        locale::set(catalog.data.settings.ui_language);
         catalog
             .data
             .settings
             .keys
-            .resize_with(catalog::SHORTCUTS.len(), String::new);
+            .resize_with(catalog::SHORTCUT_KEYS.len(), String::new);
         for (index, key) in catalog.data.settings.keys.iter_mut().enumerate() {
             if Key::from_name(key).is_none() {
-                *key = catalog::SHORTCUTS[index].1.into();
+                *key = catalog::SHORTCUT_KEYS[index].into();
             }
         }
         let settings = &catalog.data.settings;
@@ -94,6 +98,7 @@ impl Pan {
             network: String::new(),
             fullscreen: false,
             native_toolbar: input::glass_toolbar(cc),
+            toolbar_language: locale::current(),
             video: None,
             logo: ctx.load_texture(
                 "PAN",
@@ -163,7 +168,11 @@ impl Pan {
     fn save_catalog(&mut self) {
         if let Err(error) = self.catalog.save() {
             self.library.message = Some((
-                format!("No se pudieron guardar los datos de PAN: {error}"),
+                tf!(
+                    "Could not save PAN data: {error}",
+                    "No se pudieron guardar los datos de PAN: {error}",
+                    "Impossible d’enregistrer les données de PAN : {error}"
+                ),
                 true,
             ));
         }
@@ -176,7 +185,7 @@ impl Pan {
             if let Err(error) = self.catalog.save() {
                 self.catalog.data.location = previous;
                 self.library.message = Some((
-                    format!("Se hizo la copia, pero PAN no pudo guardar la ubicación: {error}"),
+                    tf!("The files were copied, but PAN could not save the new location: {error}", "Se hizo la copia, pero PAN no pudo guardar la ubicación: {error}", "Les fichiers ont été copiés, mais PAN n’a pas pu enregistrer le nouvel emplacement : {error}"),
                     true,
                 ));
             } else {
@@ -195,7 +204,7 @@ impl Pan {
                 }
                 self.library.reload();
                 self.library.message = Some((
-                    "PAN ya usa la carpeta nueva. La copia anterior sigue en su sitio.".into(),
+                    tr!("PAN is using the new folder. The previous copy is still available.", "PAN ya usa la carpeta nueva. La copia anterior sigue en su sitio.", "PAN utilise le nouveau dossier. La copie précédente est toujours disponible.").into(),
                     false,
                 ));
             }
@@ -413,26 +422,46 @@ impl Pan {
                         ui.label(text("Play Anything Now", 12.0, SOFT));
                     });
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if icon_button(ui, Icon::Queue, 34.0, "Cola de reproducción", false)
-                            .clicked()
+                        if icon_button(
+                            ui,
+                            Icon::Queue,
+                            34.0,
+                            tr!("Playback queue", "Cola de reproducción", "File d’attente"),
+                            false,
+                        )
+                        .clicked()
                         {
                             self.queue_open = !self.queue_open;
                         }
                         let library_label = if self.library_open {
-                            "Reproductor"
+                            tr!("Player", "Reproductor", "Lecteur")
                         } else {
-                            "Biblioteca"
+                            tr!("Library", "Biblioteca", "Bibliothèque")
                         };
                         if icon_button(ui, Icon::Library, 34.0, library_label, self.library_open)
                             .clicked()
                         {
                             self.toggle_library();
                         }
-                        if icon_button(ui, Icon::Link, 34.0, "Abrir URL", false).clicked() {
+                        if icon_button(
+                            ui,
+                            Icon::Link,
+                            34.0,
+                            tr!("Open URL", "Abrir URL", "Ouvrir une URL"),
+                            false,
+                        )
+                        .clicked()
+                        {
                             self.network_open = true;
                         }
                         if ui
-                            .add_sized([121.0, 34.0], button("Abrir archivo", false))
+                            .add_sized(
+                                [121.0, 34.0],
+                                button(
+                                    tr!("Open file", "Abrir archivo", "Ouvrir un fichier"),
+                                    false,
+                                ),
+                            )
                             .clicked()
                         {
                             input::picker(false);
@@ -457,11 +486,15 @@ impl Pan {
                     .stroke(Stroke::new(1.0_f32, BORDER)),
             )
             .show(ctx, |ui| {
-                ui.heading("Cola");
+                ui.heading(tr!("Queue", "Cola", "File d’attente"));
                 ui.add_space(10.0);
                 if self.queue.is_empty() {
                     ui.label(text(
-                        "Abre varios archivos para reproducirlos en orden.",
+                        tr!(
+                            "Open multiple files to play them in order.",
+                            "Abre varios archivos para reproducirlos en orden.",
+                            "Ouvrez plusieurs fichiers pour les lire dans l’ordre."
+                        ),
                         13.0,
                         SOFT,
                     ));
@@ -518,16 +551,24 @@ impl Pan {
                 } else {
                     let empty = self.queue.is_empty();
                     let message = if empty {
-                        "Todo listo para reproducir"
+                        tr!("Ready to play", "Todo listo para reproducir", "Prêt à lire")
                     } else if state.status == Status::Loading {
-                        "Cargando…"
+                        tr!("Loading…", "Cargando…", "Chargement…")
                     } else if state.status == Status::Error {
-                        "No se pudo reproducir el archivo"
+                        tr!(
+                            "Could not play the file",
+                            "No se pudo reproducir el archivo",
+                            "Impossible de lire le fichier"
+                        )
                     } else {
-                        "Reproducción"
+                        tr!("Playback", "Reproducción", "Lecture")
                     };
                     let hint = if empty {
-                        Some("Suelta un vídeo o audio aquí")
+                        Some(tr!(
+                            "Drop a video or audio file here",
+                            "Suelta un vídeo o audio aquí",
+                            "Déposez un fichier audio ou vidéo ici"
+                        ))
                     } else {
                         self.queue
                             .get(self.current)
@@ -566,7 +607,13 @@ impl Pan {
                     if empty {
                         content.add_space(10.0);
                         if content
-                            .add_sized([132.0, 36.0], button("Abrir archivo", true))
+                            .add_sized(
+                                [132.0, 36.0],
+                                button(
+                                    tr!("Open file", "Abrir archivo", "Ouvrir un fichier"),
+                                    true,
+                                ),
+                            )
                             .clicked()
                         {
                             input::picker(false);
@@ -611,7 +658,13 @@ impl Pan {
                 transport.spacing_mut().item_spacing.x = 5.0;
                 if transport
                     .add_enabled_ui(self.current > 0, |ui| {
-                        icon_button(ui, Icon::Back, 33.0, "Anterior", false)
+                        icon_button(
+                            ui,
+                            Icon::Back,
+                            33.0,
+                            tr!("Previous", "Anterior", "Précédent"),
+                            false,
+                        )
                     })
                     .inner
                     .clicked()
@@ -623,7 +676,11 @@ impl Pan {
                     &mut transport,
                     if playing { Icon::Pause } else { Icon::Play },
                     44.0,
-                    if playing { "Pausar" } else { "Reproducir" },
+                    if playing {
+                        tr!("Pause", "Pausar", "Pause")
+                    } else {
+                        tr!("Play", "Reproducir", "Lire")
+                    },
                     true,
                 )
                 .clicked()
@@ -632,7 +689,13 @@ impl Pan {
                 }
                 if transport
                     .add_enabled_ui(self.current + 1 < self.queue.len(), |ui| {
-                        icon_button(ui, Icon::Forward, 33.0, "Siguiente", false)
+                        icon_button(
+                            ui,
+                            Icon::Forward,
+                            33.0,
+                            tr!("Next", "Siguiente", "Suivant"),
+                            false,
+                        )
                     })
                     .inner
                     .clicked()
@@ -641,7 +704,13 @@ impl Pan {
                 }
                 if transport
                     .add_enabled_ui(!self.queue.is_empty(), |ui| {
-                        icon_button(ui, Icon::Stop, 33.0, "Detener", false)
+                        icon_button(
+                            ui,
+                            Icon::Stop,
+                            33.0,
+                            tr!("Stop", "Detener", "Arrêter"),
+                            false,
+                        )
                     })
                     .inner
                     .clicked()
@@ -664,7 +733,7 @@ impl Pan {
                     &mut right,
                     Icon::Fullscreen,
                     34.0,
-                    "Pantalla completa",
+                    tr!("Fullscreen", "Pantalla completa", "Plein écran"),
                     false,
                 )
                 .clicked()
@@ -685,17 +754,24 @@ impl Pan {
                             }
                         }
                         ui.separator();
-                        ui.checkbox(&mut self.repeat, "Repetir archivo");
+                        ui.checkbox(
+                            &mut self.repeat,
+                            tr!("Repeat file", "Repetir archivo", "Répéter le fichier"),
+                        );
                     })
                     .response
-                    .on_hover_text("Velocidad y repetición");
+                    .on_hover_text(tr!(
+                        "Speed and repeat",
+                        "Velocidad y repetición",
+                        "Vitesse et répétition"
+                    ));
                 self.track_menu(&mut right, true);
                 self.track_menu(&mut right, false);
                 if options.width() > 224.0 {
                     right.spacing_mut().slider_width = (options.width() - 188.0).min(74.0);
                     if right
                         .add(Slider::new(&mut self.volume, 0..=100).show_value(false))
-                        .on_hover_text("Volumen")
+                        .on_hover_text(tr!("Volume", "Volumen", "Volume"))
                         .changed()
                     {
                         self.apply_audio();
@@ -705,7 +781,7 @@ impl Pan {
                     &mut right,
                     Icon::Volume(self.muted),
                     32.0,
-                    "Silenciar",
+                    tr!("Mute", "Silenciar", "Couper le son"),
                     false,
                 )
                 .clicked()
@@ -800,7 +876,9 @@ impl Pan {
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing.y = 2.0;
             let item = self.queue.get(self.current);
-            let title = item.map_or("En espera", |m| m.title.as_str());
+            let title = item.map_or(tr!("Ready", "En espera", "En attente"), |m| {
+                m.title.as_str()
+            });
             ui.add(Label::new(text(title, 14.0, CREAM).strong()).truncate())
                 .on_hover_text(title);
             if let Some(item) = item {
@@ -815,16 +893,22 @@ impl Pan {
 
     fn track_menu(&mut self, ui: &mut Ui, subtitles: bool) {
         let (label, icon) = if subtitles {
-            ("Subtítulos", Icon::Captions)
+            (
+                tr!("Subtitles", "Subtítulos", "Sous-titres"),
+                Icon::Captions,
+            )
         } else {
-            ("Pistas de audio", Icon::Audio)
+            (
+                tr!("Audio tracks", "Pistas de audio", "Pistes audio"),
+                Icon::Audio,
+            )
         };
         egui::Popup::menu(&icon_button(ui, icon, 32.0, label, false)).show(|ui| {
             ui.label(text(label, 13.0, SOFT));
             if let Some(player) = &self.player {
                 let (selected, tracks) = player.tracks(subtitles);
                 if tracks.is_empty() {
-                    ui.label("Sin pistas");
+                    ui.label(tr!("No tracks", "Sin pistas", "Aucune piste"));
                 }
                 for (id, name) in tracks {
                     if ui.selectable_label(selected == id, name).clicked() {
@@ -848,7 +932,11 @@ impl Pan {
                         &mut active.settings.audio_delay
                     };
                     ui.separator();
-                    ui.label("Sincronización (ms)");
+                    ui.label(tr!(
+                        "Timing (ms)",
+                        "Sincronización (ms)",
+                        "Synchronisation (ms)"
+                    ));
                     ui.horizontal(|ui| {
                         let before = *delay;
                         if ui.button("−100").clicked() {
@@ -858,7 +946,10 @@ impl Pan {
                         if ui.button("+100").clicked() {
                             *delay += 100;
                         }
-                        if ui.button("Restablecer").clicked() {
+                        if ui
+                            .button(tr!("Reset", "Restablecer", "Réinitialiser"))
+                            .clicked()
+                        {
                             *delay = 0;
                         }
                         *delay = (*delay).clamp(-60_000, 60_000);
@@ -866,12 +957,28 @@ impl Pan {
                             player.delay(subtitles, *delay);
                         }
                     });
-                    if subtitles && ui.button("Ajustes de subtítulos…").clicked() {
+                    if subtitles
+                        && ui
+                            .button(tr!(
+                                "Subtitle settings…",
+                                "Ajustes de subtítulos…",
+                                "Paramètres des sous-titres…"
+                            ))
+                            .clicked()
+                    {
                         self.preferences.open = true;
                         ui.close();
                     }
                 }
-                if subtitles && !self.queue.is_empty() && ui.button("Abrir subtítulos…").clicked()
+                if subtitles
+                    && !self.queue.is_empty()
+                    && ui
+                        .button(tr!(
+                            "Open subtitles…",
+                            "Abrir subtítulos…",
+                            "Ouvrir des sous-titres…"
+                        ))
+                        .clicked()
                 {
                     input::picker(true);
                     ui.close();
@@ -883,7 +990,7 @@ impl Pan {
     fn network_dialog(&mut self, ctx: &Context) {
         let mut open = self.network_open;
         let mut submit = false;
-        Window::new("Abrir URL")
+        Window::new(tr!("Open URL", "Abrir URL", "Ouvrir une URL"))
             .open(&mut open)
             .collapsible(false)
             .resizable(false)
@@ -900,7 +1007,10 @@ impl Pan {
                     submit = true;
                 }
                 if ui
-                    .add_sized([110.0, 32.0], button("Reproducir", true))
+                    .add_sized(
+                        [110.0, 32.0],
+                        button(tr!("Play", "Reproducir", "Lire"), true),
+                    )
                     .clicked()
                 {
                     submit = true;
@@ -958,7 +1068,13 @@ fn clock(ms: i64) -> String {
 }
 
 impl eframe::App for Pan {
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+        if self.toolbar_language != locale::current() {
+            self.toolbar_language = locale::current();
+            if self.native_toolbar {
+                input::refresh_toolbar(frame);
+            }
+        }
         self.library.poll();
         self.catalog_poll(ctx);
         let mut incoming = input::drain();
@@ -1012,14 +1128,25 @@ impl eframe::App for Pan {
                         active.subtitle_pending = None;
                     }
                 } else {
-                    self.error = Some("No se pudieron cargar los subtítulos.".into());
+                    self.error = Some(
+                        tr!(
+                            "Could not load subtitles.",
+                            "No se pudieron cargar los subtítulos.",
+                            "Impossible de charger les sous-titres."
+                        )
+                        .into(),
+                    );
                 }
             }
             if let Some(frame) = player.frame() {
                 match &mut self.video {
                     Some(video) => video.set(frame, TextureOptions::LINEAR),
                     None => {
-                        self.video = Some(ctx.load_texture("Vídeo", frame, TextureOptions::LINEAR))
+                        self.video = Some(ctx.load_texture(
+                            tr!("Video", "Vídeo", "Vidéo"),
+                            frame,
+                            TextureOptions::LINEAR,
+                        ))
                     }
                 }
             }
@@ -1035,8 +1162,14 @@ impl eframe::App for Pan {
             }
         }
         if state.status == Status::Error {
-            self.error
-                .get_or_insert_with(|| "LibVLC no pudo reproducir este medio.".into());
+            self.error.get_or_insert_with(|| {
+                tr!(
+                    "LibVLC could not play this media.",
+                    "LibVLC no pudo reproducir este medio.",
+                    "LibVLC n’a pas pu lire ce média."
+                )
+                .into()
+            });
         }
         self.shortcuts(ctx, &state);
         if !self.fullscreen && !self.native_toolbar {

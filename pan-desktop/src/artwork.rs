@@ -37,7 +37,15 @@ impl Match {
     }
 
     pub fn download(&self) -> Result<Vec<u8>, String> {
-        let raw = &self.thumbnail.as_ref().ok_or("Resultado sin imagen")?.url;
+        let raw = &self
+            .thumbnail
+            .as_ref()
+            .ok_or(tr!(
+                "No image for this result",
+                "Resultado sin imagen",
+                "Aucune image pour ce résultat"
+            ))?
+            .url;
         let address = if raw.starts_with("//") {
             format!("https:{raw}")
         } else {
@@ -49,7 +57,12 @@ impl Match {
             Some("upload.wikimedia.org" | "thumb.wikimedia.org")
         ) || url.scheme() != "https"
         {
-            return Err("Dirección de imagen no compatible".into());
+            return Err(tr!(
+                "Unsupported image URL",
+                "Dirección de imagen no compatible",
+                "URL d’image non prise en charge"
+            )
+            .into());
         }
         fetch(&url, MAX_IMAGE)
     }
@@ -66,10 +79,11 @@ fn fetch(url: &Url, limit: usize) -> Result<Vec<u8>, String> {
         .new_agent();
     let response = agent.get(url.as_str()).call().map_err(|e| e.to_string())?;
     if !response.status().is_success() {
-        return Err(format!(
-            "Wikipedia respondió con HTTP {}",
-            response.status().as_u16()
-        ));
+        return Err(
+            tf!("Wikipedia returned HTTP {}", "Wikipedia respondió con HTTP {}", "Wikipédia a répondu avec le code HTTP {}";
+                response.status().as_u16()
+            ),
+        );
     }
     let mut body = response.into_body();
     body.with_config()
@@ -103,7 +117,12 @@ pub fn local_file(path: &Path) -> Result<Vec<u8>, String> {
         .and_then(|file| file.take(MAX_IMAGE as u64 + 1).read_to_end(&mut data))
         .map_err(|e| e.to_string())?;
     if data.len() > MAX_IMAGE {
-        return Err("La imagen supera 12 MB".into());
+        return Err(tr!(
+            "The image exceeds 12 MB",
+            "La imagen supera 12 MB",
+            "L’image dépasse 12 Mo"
+        )
+        .into());
     }
     Ok(data)
 }

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=PAN
-GenericName=Reproductor multimedia
+GenericName=Media Player
+GenericName[es]=Reproductor multimedia
+GenericName[fr]=Lecteur multimédia
 Comment=Play Anything Now
 Exec=pan %F
 Icon=pan

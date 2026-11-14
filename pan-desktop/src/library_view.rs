@@ -25,12 +25,12 @@ enum Sort {
 impl Sort {
     fn label(self) -> &'static str {
         match self {
-            Self::List => "Orden de lista",
-            Self::Recent => "Fecha de importación",
-            Self::Played => "Última reproducción",
-            Self::Name => "Nombre",
-            Self::Size => "Tamaño",
-            Self::Duration => "Duración",
+            Self::List => tr!("Playlist order", "Orden de lista", "Ordre de la playlist"),
+            Self::Recent => tr!("Date added", "Fecha de importación", "Date d’ajout"),
+            Self::Played => tr!("Last played", "Última reproducción", "Dernière lecture"),
+            Self::Name => tr!("Name", "Nombre", "Nom"),
+            Self::Size => tr!("Size", "Tamaño", "Taille"),
+            Self::Duration => tr!("Duration", "Duración", "Durée"),
         }
     }
 }
@@ -105,13 +105,13 @@ impl View {
         let mut action = None;
         if self.missing_open {
             let mut forget = None;
-            Window::new("Archivos que faltan").open(&mut self.missing_open).show(ctx, |ui| {
-                ui.label("Comprueba que el disco esté conectado o que el archivo siga en la carpeta de PAN.");
+            Window::new(tr!("Missing files", "Archivos que faltan", "Fichiers manquants")).open(&mut self.missing_open).show(ctx, |ui| {
+                ui.label(tr!("Check that the drive is connected and the file is still in the PAN folder.", "Comprueba que el disco esté conectado o que el archivo siga en la carpeta de PAN.", "Vérifiez que le disque est connecté et que le fichier se trouve toujours dans le dossier PAN."));
                 ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
                     for (id, entry) in &missing {
                         ui.horizontal(|ui| {
                             ui.label(if entry.title.is_empty() { &entry.filename } else { &entry.title });
-                            if ui.button("Quitar del catálogo").clicked() {
+                            if ui.button(tr!("Remove from catalog", "Quitar del catálogo", "Retirer du catalogue")).clicked() {
                                 forget = Some((*id).clone());
                             }
                         });
@@ -144,32 +144,55 @@ impl View {
                     .show(ui, |ui| {
                         ui.set_min_size(ui.available_size());
                         ui.horizontal(|ui| {
-                            if ui.add(button("‹ Reproductor", false)).clicked() {
+                            if ui
+                                .add(button(tr!("‹ Player", "‹ Reproductor", "‹ Lecteur"), false))
+                                .clicked()
+                            {
                                 action = Some(Action::Player);
                             }
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 if ui
-                                    .add_enabled(!library.busy(), button("+ Añadir archivos", true))
+                                    .add_enabled(
+                                        !library.busy(),
+                                        button(
+                                            tr!(
+                                                "+ Add files",
+                                                "+ Añadir archivos",
+                                                "+ Ajouter des fichiers"
+                                            ),
+                                            true,
+                                        ),
+                                    )
                                     .clicked()
                                 {
                                     action = Some(Action::Import);
                                 }
-                                if ui.add(button("Ajustes", false)).clicked() {
+                                if ui
+                                    .add(button(tr!("Settings", "Ajustes", "Paramètres"), false))
+                                    .clicked()
+                                {
                                     action = Some(Action::Settings);
                                 }
                             });
                         });
                         ui.add_space(8.0);
-                        ui.label(text("Tu biblioteca", 29.0, CREAM).strong());
+                        ui.label(
+                            text(
+                                tr!("Your library", "Tu biblioteca", "Votre bibliothèque"),
+                                29.0,
+                                CREAM,
+                            )
+                            .strong(),
+                        );
                         ui.horizontal_wrapped(|ui| {
                             ui.label(text(
                                 format!(
                                     "{} {} · {}",
                                     library.items.len(),
                                     if library.items.len() == 1 {
-                                        "archivo"
+                                        tr!("file", "archivo", "fichier")
                                     } else {
-                                        "archivos"
+                                        tr!("files", "archivos", "fichiers")
                                     },
                                     size_label(library.items.iter().map(|i| i.size).sum())
                                 ),
@@ -178,7 +201,11 @@ impl View {
                             ));
                             if missing_count > 0
                                 && ui
-                                    .button(format!("{missing_count} sin localizar"))
+                                    .button(tf!(
+                                        "{missing_count} missing",
+                                        "{missing_count} sin localizar",
+                                        "{missing_count} manquant(s)"
+                                    ))
                                     .clicked()
                             {
                                 self.missing_open = true;
@@ -195,9 +222,17 @@ impl View {
                             ui.horizontal(|ui| {
                                 ui.spinner();
                                 ui.label(if library.moving() {
-                                    "Copiando la biblioteca…"
+                                    tr!(
+                                        "Copying the library…",
+                                        "Copiando la biblioteca…",
+                                        "Copie de la bibliothèque…"
+                                    )
                                 } else {
-                                    "Importando archivos…"
+                                    tr!(
+                                        "Importing files…",
+                                        "Importando archivos…",
+                                        "Importation des fichiers…"
+                                    )
                                 });
                             });
                         } else if let Some((message, error)) = &library.message {
@@ -242,8 +277,14 @@ impl View {
             return false;
         };
         let (title, button_label) = match dialog {
-            ListDialog::Create => ("Nueva lista", "Crear"),
-            ListDialog::Rename(_) => ("Cambiar nombre", "Guardar"),
+            ListDialog::Create => (
+                tr!("New playlist", "Nueva lista", "Nouvelle playlist"),
+                tr!("Create", "Crear", "Créer"),
+            ),
+            ListDialog::Rename(_) => (
+                tr!("Rename", "Cambiar nombre", "Renommer"),
+                tr!("Save", "Guardar", "Enregistrer"),
+            ),
         };
         let mut open = true;
         let mut submit = false;
@@ -257,7 +298,11 @@ impl View {
                 let name = ui.add(
                     TextEdit::singleline(&mut self.list_name)
                         .desired_width(240.0)
-                        .hint_text("Nombre de la lista"),
+                        .hint_text(tr!(
+                            "Playlist name",
+                            "Nombre de la lista",
+                            "Nom de la playlist"
+                        )),
                 );
                 if !name.has_focus() && !name.lost_focus() {
                     name.request_focus();
@@ -295,36 +340,61 @@ impl View {
                 .selected_text(
                     self.selected_list
                         .map(|i| data.lists[i].name.as_str())
-                        .unwrap_or("Todos los archivos"),
+                        .unwrap_or(tr!("All files", "Todos los archivos", "Tous les fichiers")),
                 )
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.selected_list, None, "Todos los archivos");
+                    ui.selectable_value(
+                        &mut self.selected_list,
+                        None,
+                        tr!("All files", "Todos los archivos", "Tous les fichiers"),
+                    );
                     for (index, list) in data.lists.iter().enumerate() {
                         ui.selectable_value(&mut self.selected_list, Some(index), &list.name);
                     }
                 });
-            if ui.button("+ Nueva lista").clicked() {
+            if ui
+                .button(tr!(
+                    "+ New playlist",
+                    "+ Nueva lista",
+                    "+ Nouvelle playlist"
+                ))
+                .clicked()
+            {
                 self.list_name.clear();
                 self.list_dialog = Some(ListDialog::Create);
             }
             if let Some(index) = self.selected_list {
-                ui.menu_button("Gestionar lista", |ui| {
-                    if ui.button("Cambiar nombre…").clicked() {
-                        self.list_name.clone_from(&data.lists[index].name);
-                        self.list_dialog = Some(ListDialog::Rename(index));
-                        ui.close();
-                    }
-                    if ui
-                        .button("Eliminar lista")
-                        .on_hover_text("Los archivos se conservan en PAN")
-                        .clicked()
-                    {
-                        data.lists.remove(index);
-                        self.selected_list = None;
-                        changed = true;
-                        ui.close();
-                    }
-                });
+                ui.menu_button(
+                    tr!("Manage playlist", "Gestionar lista", "Gérer la playlist"),
+                    |ui| {
+                        if ui
+                            .button(tr!("Rename…", "Cambiar nombre…", "Renommer…"))
+                            .clicked()
+                        {
+                            self.list_name.clone_from(&data.lists[index].name);
+                            self.list_dialog = Some(ListDialog::Rename(index));
+                            ui.close();
+                        }
+                        if ui
+                            .button(tr!(
+                                "Delete playlist",
+                                "Eliminar lista",
+                                "Supprimer la playlist"
+                            ))
+                            .on_hover_text(tr!(
+                                "Files stay in your library",
+                                "Los archivos se conservan en PAN",
+                                "Les fichiers restent dans la bibliothèque"
+                            ))
+                            .clicked()
+                        {
+                            data.lists.remove(index);
+                            self.selected_list = None;
+                            changed = true;
+                            ui.close();
+                        }
+                    },
+                );
             }
         });
         changed
@@ -333,10 +403,10 @@ impl View {
     fn filters(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             for (filter, label) in [
-                (None, "Todo"),
+                (None, tr!("All", "Todo", "Tout")),
                 (Some(Kind::Audio), "Audio"),
-                (Some(Kind::Video), "Vídeo"),
-                (Some(Kind::Other), "Otros"),
+                (Some(Kind::Video), tr!("Video", "Vídeo", "Vidéo")),
+                (Some(Kind::Other), tr!("Other", "Otros", "Autres")),
             ] {
                 let active = self.filter == filter;
                 if ui
@@ -357,7 +427,11 @@ impl View {
             ui.add(
                 TextEdit::singleline(&mut self.query)
                     .desired_width(165.0)
-                    .hint_text("Buscar en tu biblioteca"),
+                    .hint_text(tr!(
+                        "Search your library",
+                        "Buscar en tu biblioteca",
+                        "Rechercher dans la bibliothèque"
+                    )),
             );
             let label = if self.sort == Sort::List && self.selected_list.is_none() {
                 Sort::Recent.label()
@@ -382,27 +456,36 @@ impl View {
                 });
             ui.menu_button(
                 if self.duration != 0 || self.date != 0 {
-                    "Filtros activos"
+                    tr!("Filters active", "Filtros activos", "Filtres actifs")
                 } else {
-                    "Filtros"
+                    tr!("Filters", "Filtros", "Filtres")
                 },
                 |ui| {
                     for (id, name, value, labels) in [
                         (
                             "duration",
-                            "Duración",
+                            tr!("Duration", "Duración", "Durée"),
                             &mut self.duration,
-                            ["Todas", "Menos de 10 min", "10 min o más", "Desconocida"],
+                            [
+                                tr!("Any duration", "Todas", "Toutes les durées"),
+                                tr!("Under 10 min", "Menos de 10 min", "Moins de 10 min"),
+                                tr!("10 min or more", "10 min o más", "10 min ou plus"),
+                                tr!("Unknown", "Desconocida", "Inconnue"),
+                            ],
                         ),
                         (
                             "date",
-                            "Importado",
+                            tr!("Date added", "Importado", "Date d’ajout"),
                             &mut self.date,
                             [
-                                "Cualquier fecha",
-                                "Últimos 7 días",
-                                "Últimos 30 días",
-                                "Hace más de 30 días",
+                                tr!("Any date", "Cualquier fecha", "Toutes les dates"),
+                                tr!("Last 7 days", "Últimos 7 días", "7 derniers jours"),
+                                tr!("Last 30 days", "Últimos 30 días", "30 derniers jours"),
+                                tr!(
+                                    "More than 30 days ago",
+                                    "Hace más de 30 días",
+                                    "Il y a plus de 30 jours"
+                                ),
                             ],
                         ),
                     ] {
@@ -506,11 +589,26 @@ fn empty(ui: &mut Ui, logo: &TextureHandle, filtered: bool) {
             ui.add_space(7.0);
         }
         let (title, hint) = if filtered {
-            ("No hay coincidencias", "Prueba con otra búsqueda o filtro.")
+            (
+                tr!("No matches", "No hay coincidencias", "Aucun résultat"),
+                tr!(
+                    "Try a different search or filter.",
+                    "Prueba con otra búsqueda o filtro.",
+                    "Essayez une autre recherche ou un autre filtre."
+                ),
+            )
         } else {
             (
-                "Tu biblioteca está vacía",
-                "Arrastra archivos aquí o usa Añadir archivos.",
+                tr!(
+                    "Your library is empty",
+                    "Tu biblioteca está vacía",
+                    "Votre bibliothèque est vide"
+                ),
+                tr!(
+                    "Drop files here or choose Add files.",
+                    "Arrastra archivos aquí o usa Añadir archivos.",
+                    "Déposez des fichiers ici ou choisissez Ajouter des fichiers."
+                ),
             )
         };
         ui.label(text(title, 20.0, CREAM).strong());
@@ -574,7 +672,11 @@ fn tiles(
                             if ui
                                 .add_enabled(
                                     !library.busy(),
-                                    Button::new("Editar ficha y carátula…"),
+                                    Button::new(tr!(
+                                        "Edit details and artwork…",
+                                        "Editar ficha y carátula…",
+                                        "Modifier les détails et la pochette…"
+                                    )),
                                 )
                                 .clicked()
                             {
@@ -584,9 +686,24 @@ fn tiles(
                             if let Some(index) = list {
                                 let ids = &mut data.lists[index].items;
                                 let index = ids.iter().position(|id| id == &item.id).unwrap();
-                                for (label, offset) in
-                                    [("Subir en la lista", -1), ("Bajar en la lista", 1)]
-                                {
+                                for (label, offset) in [
+                                    (
+                                        tr!(
+                                            "Move up",
+                                            "Subir en la lista",
+                                            "Monter dans la playlist"
+                                        ),
+                                        -1,
+                                    ),
+                                    (
+                                        tr!(
+                                            "Move down",
+                                            "Bajar en la lista",
+                                            "Descendre dans la playlist"
+                                        ),
+                                        1,
+                                    ),
+                                ] {
                                     if let Some(other) =
                                         index.checked_add_signed(offset).filter(|i| *i < ids.len())
                                     {
@@ -597,28 +714,42 @@ fn tiles(
                                         }
                                     }
                                 }
-                                if ui.button("Quitar de esta lista").clicked() {
+                                if ui
+                                    .button(tr!(
+                                        "Remove from this playlist",
+                                        "Quitar de esta lista",
+                                        "Retirer de cette playlist"
+                                    ))
+                                    .clicked()
+                                {
                                     ids.remove(index);
                                     clicked = Some(Action::Save);
                                     ui.close();
                                 }
                             }
                             if !data.lists.is_empty() {
-                                ui.menu_button("Añadir a una lista", |ui| {
-                                    for playlist in &mut data.lists {
-                                        if ui
-                                            .add_enabled(
-                                                !playlist.items.contains(&item.id),
-                                                Button::new(&playlist.name),
-                                            )
-                                            .clicked()
-                                        {
-                                            playlist.items.push(item.id.clone());
-                                            clicked = Some(Action::Save);
-                                            ui.close();
+                                ui.menu_button(
+                                    tr!(
+                                        "Add to playlist",
+                                        "Añadir a una lista",
+                                        "Ajouter à une playlist"
+                                    ),
+                                    |ui| {
+                                        for playlist in &mut data.lists {
+                                            if ui
+                                                .add_enabled(
+                                                    !playlist.items.contains(&item.id),
+                                                    Button::new(&playlist.name),
+                                                )
+                                                .clicked()
+                                            {
+                                                playlist.items.push(item.id.clone());
+                                                clicked = Some(Action::Save);
+                                                ui.close();
+                                            }
                                         }
-                                    }
-                                });
+                                    },
+                                );
                             }
                         });
                     }
@@ -637,8 +768,7 @@ fn tile(
     selected: bool,
 ) -> Response {
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
-    let response = response.on_hover_text(format!(
-        "{}\nMenú contextual: editar o añadir a una lista",
+    let response = response.on_hover_text(tf!("{}\nRight-click to edit or add to a playlist", "{}\nMenú contextual: editar o añadir a una lista", "{}\nClic droit pour modifier ou ajouter à une playlist";
         &item.media.title
     ));
     let painter = ui.painter();

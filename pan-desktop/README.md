@@ -24,7 +24,9 @@ Open a file with **Open With → PAN**. Set PAN as the default for a file type i
 - Edit the title, description and artwork from a tile's context menu. Choose a local image or search Wikipedia. PAN sends the search text when you run a search. The available artwork depends on the article.
 - Use the track menus to select audio and subtitle tracks, load external subtitles or change synchronization. Subtitle language and text size preferences apply to the next file you open. The text size option depends on the subtitle format.
 
-## Storage and shortcuts
+## Language, storage and shortcuts
+
+Choose **English**, **Español** or **Français** under **Interface language**. PAN starts in English and saves your selection for the next launch.
 
 Open **Settings** from the library or press **⌘,** or **Ctrl+,** to see library size, choose another disk, or customize playback shortcuts. Changing the location copies the media and keeps the previous folder. PAN skips byte-identical files during import and reports missing copies in the library.
 

@@ -38,8 +38,8 @@ impl Kind {
     pub fn label(self) -> &'static str {
         match self {
             Self::Audio => "Audio",
-            Self::Video => "Vídeo",
-            Self::Other => "Archivo",
+            Self::Video => tr!("Video", "Vídeo", "Vidéo"),
+            Self::Other => tr!("File", "Archivo", "Fichier"),
         }
     }
 }
@@ -82,15 +82,29 @@ impl Library {
             Some(root) => {
                 if default_location {
                     if let Err(error) = fs::create_dir_all(&root) {
-                        library.message =
-                            Some((format!("No se pudo crear la biblioteca: {error}"), true));
+                        library.message = Some((
+                            tf!(
+                                "Could not create the library: {error}",
+                                "No se pudo crear la biblioteca: {error}",
+                                "Impossible de créer la bibliothèque : {error}"
+                            ),
+                            true,
+                        ));
                     }
                 }
                 library.root = Some(root);
                 library.reload();
             }
             None => {
-                library.message = Some(("No se encontró la carpeta de datos de PAN.".into(), true))
+                library.message = Some((
+                    tr!(
+                        "PAN could not find its data folder.",
+                        "No se encontró la carpeta de datos de PAN.",
+                        "PAN ne trouve pas son dossier de données."
+                    )
+                    .into(),
+                    true,
+                ))
             }
         }
         library
@@ -101,7 +115,14 @@ impl Library {
         match read_items(root) {
             Ok(items) => self.items = items,
             Err(err) => {
-                self.message = Some((format!("No se pudo leer la biblioteca: {err}"), true))
+                self.message = Some((
+                    tf!(
+                        "Could not read the library: {err}",
+                        "No se pudo leer la biblioteca: {err}",
+                        "Impossible de lire la bibliothèque : {err}"
+                    ),
+                    true,
+                ))
             }
         }
     }
@@ -157,12 +178,27 @@ impl Library {
             }
             Ok(Err(err)) => {
                 self.move_task = None;
-                self.message = Some((format!("No se pudo cambiar la carpeta: {err}"), true));
+                self.message = Some((
+                    tf!(
+                        "Could not change the library folder: {err}",
+                        "No se pudo cambiar la carpeta: {err}",
+                        "Impossible de changer le dossier de la bibliothèque : {err}"
+                    ),
+                    true,
+                ));
                 None
             }
             Err(mpsc::TryRecvError::Disconnected) => {
                 self.move_task = None;
-                self.message = Some(("Se interrumpió la copia de la biblioteca.".into(), true));
+                self.message = Some((
+                    tr!(
+                        "The library copy was interrupted.",
+                        "Se interrumpió la copia de la biblioteca.",
+                        "La copie de la bibliothèque a été interrompue."
+                    )
+                    .into(),
+                    true,
+                ));
                 None
             }
             Err(mpsc::TryRecvError::Empty) => None,
@@ -177,7 +213,15 @@ impl Library {
             return;
         };
         if self.busy() {
-            self.message = Some(("Espera a que termine la importación actual.".into(), true));
+            self.message = Some((
+                tr!(
+                    "Wait for the current import to finish.",
+                    "Espera a que termine la importación actual.",
+                    "Attendez la fin de l’importation en cours."
+                )
+                .into(),
+                true,
+            ));
             return;
         }
         match std::thread::Builder::new()
@@ -197,7 +241,14 @@ impl Library {
             Ok(_) => self.message = None,
             Err(err) => {
                 self.task = None;
-                self.message = Some((format!("No se pudo iniciar la importación: {err}"), true));
+                self.message = Some((
+                    tf!(
+                        "Could not start the import: {err}",
+                        "No se pudo iniciar la importación: {err}",
+                        "Impossible de démarrer l’importation : {err}"
+                    ),
+                    true,
+                ));
             }
         }
     }
@@ -209,16 +260,20 @@ impl Library {
                 self.task = None;
                 let count = report.copied;
                 let mut status = if count == 1 {
-                    "1 archivo guardado".to_owned()
+                    tr!("1 file saved", "1 archivo guardado", "1 fichier enregistré").to_owned()
                 } else {
-                    format!("{count} archivos guardados")
+                    tf!(
+                        "{count} files saved",
+                        "{count} archivos guardados",
+                        "{count} fichiers enregistrés"
+                    )
                 };
                 if report.skipped > 0 {
-                    status.push_str(&format!(" · {} ya en PAN", report.skipped));
+                    status.push_str(&tf!(" · {} already in PAN", " · {} ya en PAN", " · {} déjà dans PAN"; report.skipped));
                 }
                 let failed = !report.errors.is_empty();
                 if let Some(first) = report.errors.first() {
-                    status.push_str(&format!(" · {} sin copiar. {first}", report.errors.len()));
+                    status.push_str(&tf!(" · {} could not be copied. {first}", " · {} sin copiar. {first}", " · {} n’ont pas pu être copiés. {first}"; report.errors.len()));
                 }
                 self.message = Some((status, failed));
                 self.reload();
@@ -226,7 +281,15 @@ impl Library {
             Err(mpsc::TryRecvError::Empty) => {}
             Err(mpsc::TryRecvError::Disconnected) => {
                 self.task = None;
-                self.message = Some(("La importación se interrumpió.".into(), true));
+                self.message = Some((
+                    tr!(
+                        "The import was interrupted.",
+                        "La importación se interrumpió.",
+                        "L’importation a été interrompue."
+                    )
+                    .into(),
+                    true,
+                ));
                 self.reload();
             }
         }
@@ -236,7 +299,14 @@ impl Library {
         let Some(root) = &self.root else { return };
         let result = fs::create_dir_all(root).and_then(|()| reveal(root));
         if let Err(err) = result {
-            self.message = Some((format!("No se pudo abrir la carpeta: {err}"), true));
+            self.message = Some((
+                tf!(
+                    "Could not open the folder: {err}",
+                    "No se pudo abrir la carpeta: {err}",
+                    "Impossible d’ouvrir le dossier : {err}"
+                ),
+                true,
+            ));
         }
     }
 }
@@ -329,9 +399,11 @@ fn read_items(root: &Path) -> io::Result<Vec<Item>> {
 fn import_files(root: &Path, already_saved: &[PathBuf], files: Vec<PathBuf>) -> ImportReport {
     let mut report = ImportReport::default();
     if let Err(err) = fs::create_dir_all(root) {
-        report
-            .errors
-            .push(format!("No se pudo crear la carpeta: {err}"));
+        report.errors.push(tf!(
+            "Could not create the folder: {err}",
+            "No se pudo crear la carpeta: {err}",
+            "Impossible de créer le dossier : {err}"
+        ));
         return report;
     }
     let lock = match fs::File::options()
@@ -384,7 +456,14 @@ fn import_files(root: &Path, already_saved: &[PathBuf], files: Vec<PathBuf>) -> 
 
 fn save_copy(root: &Path, file: &Path, already_saved: &[PathBuf]) -> io::Result<Option<PathBuf>> {
     let name = file.file_name().filter(|_| file.is_file()).ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidInput, "Selecciona un archivo válido")
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            tr!(
+                "Select a valid file",
+                "Selecciona un archivo válido",
+                "Sélectionnez un fichier valide"
+            ),
+        )
     })?;
     use std::io::{Seek, SeekFrom};
     let mut source = fs::File::open(file)?;
@@ -413,9 +492,11 @@ fn save_copy(root: &Path, file: &Path, already_saved: &[PathBuf]) -> io::Result<
         let mut dest = BufWriter::new(fs::File::create(pending.join(name))?);
         let copied = io::copy(&mut source, &mut dest)?;
         if copied != length {
-            return Err(io::Error::other(
+            return Err(io::Error::other(tr!(
+                "The file size changed while copying",
                 "El tamaño del archivo cambió durante la copia",
-            ));
+                "La taille du fichier a changé pendant la copie"
+            )));
         }
         dest.flush()?;
         dest.get_ref().sync_all()?;
@@ -436,14 +517,20 @@ fn copy_library(source: &Path, destination: &Path) -> io::Result<()> {
         .canonicalize()
         .is_ok_and(|root| destination.starts_with(root))
     {
-        return Err(io::Error::other(
+        return Err(io::Error::other(tr!(
+            "Choose a location outside the current library",
             "Elige una ubicación fuera de la biblioteca actual",
-        ));
+            "Choisissez un emplacement en dehors de la bibliothèque actuelle"
+        )));
     }
     if destination.exists() {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
-            "Ya existe una carpeta Biblioteca PAN en el destino",
+            tr!(
+                "The destination already contains a Biblioteca PAN folder",
+                "Ya existe una carpeta Biblioteca PAN en el destino",
+                "La destination contient déjà un dossier Biblioteca PAN"
+            ),
         ));
     }
     let staging = tempfile::tempdir_in(&parent)?;
@@ -463,7 +550,11 @@ fn copy_library(source: &Path, destination: &Path) -> io::Result<()> {
     if destination.exists() {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
-            "El destino se creó durante la copia",
+            tr!(
+                "The destination was created during the copy",
+                "El destino se creó durante la copia",
+                "La destination a été créée pendant la copie"
+            ),
         ));
     }
     fs::rename(staging.path(), destination)
@@ -515,7 +606,7 @@ mod tests {
         let library = test.join("Biblioteca");
         fs::create_dir_all(&downloads)?;
         let original = downloads.join("Vídeo con espacios.mkv");
-        let other_dir = test.join("Otros");
+        let other_dir = test.join(tr!("Other", "Otros", "Autres"));
         fs::create_dir_all(&other_dir)?;
         let same_name = other_dir.join(original.file_name().unwrap());
         fs::write(&original, b"media original")?;

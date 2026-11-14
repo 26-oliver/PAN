@@ -96,8 +96,14 @@ impl Pan {
             if let Some(address) = active.external_pending.take() {
                 if let Ok(url) = url::Url::parse(&address) {
                     if !player.subtitle(&url) {
-                        self.error =
-                            Some("El archivo de subtítulos guardado ya no está disponible.".into());
+                        self.error = Some(
+                            tr!(
+                                "The saved subtitle file is no longer available.",
+                                "El archivo de subtítulos guardado ya no está disponible.",
+                                "Le fichier de sous-titres enregistré n’est plus disponible."
+                            )
+                            .into(),
+                        );
                     } else {
                         active.subtitle_pending = None;
                     }

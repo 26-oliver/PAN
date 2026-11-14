@@ -43,6 +43,7 @@ fn received(path: PathBuf, subtitles: bool) {
 extern "C" {
     fn pan_register_open_events();
     fn pan_install_glass_toolbar(view: *mut std::ffi::c_void) -> i32;
+    fn pan_localize_glass_toolbar(view: *mut std::ffi::c_void);
     fn pan_pick_file(kind: std::ffi::c_int);
 }
 
@@ -83,13 +84,23 @@ pub fn picker(subtitles: bool) {
         let dialog = rfd::FileDialog::new();
         if subtitles {
             let file = dialog
-                .set_title("Abrir subtítulos")
-                .add_filter("Subtítulos", &["srt", "ass", "ssa", "vtt", "sub"])
+                .set_title(tr!(
+                    "Open subtitles",
+                    "Abrir subtítulos",
+                    "Ouvrir des sous-titres"
+                ))
+                .add_filter(
+                    tr!("Subtitles", "Subtítulos", "Sous-titres"),
+                    &["srt", "ass", "ssa", "vtt", "sub"],
+                )
                 .pick_file();
             if let Some(path) = file {
                 received(path, true);
             }
-        } else if let Some(files) = dialog.set_title("Abrir archivo").pick_files() {
+        } else if let Some(files) = dialog
+            .set_title(tr!("Open file", "Abrir archivo", "Ouvrir un fichier"))
+            .pick_files()
+        {
             PENDING.lock().unwrap().files.extend(files);
         }
     });
@@ -123,7 +134,7 @@ pub fn import_picker() {
     #[cfg(not(target_os = "macos"))]
     std::thread::spawn(|| {
         if let Some(files) = rfd::FileDialog::new()
-            .set_title("Añadir a PAN")
+            .set_title(tr!("Add to PAN", "Añadir a PAN", "Ajouter à PAN"))
             .pick_files()
         {
             PENDING.lock().unwrap().imports.extend(files);
@@ -139,7 +150,11 @@ pub fn storage_picker() {
     #[cfg(not(target_os = "macos"))]
     std::thread::spawn(|| {
         if let Some(path) = rfd::FileDialog::new()
-            .set_title("Elegir ubicación de la biblioteca")
+            .set_title(tr!(
+                "Choose library location",
+                "Elegir ubicación de la biblioteca",
+                "Choisir l’emplacement de la bibliothèque"
+            ))
             .pick_folder()
         {
             PENDING.lock().unwrap().folders.push(path);
@@ -155,11 +170,30 @@ pub fn cover_picker() {
     #[cfg(not(target_os = "macos"))]
     std::thread::spawn(|| {
         if let Some(path) = rfd::FileDialog::new()
-            .set_title("Elegir carátula")
-            .add_filter("Imágenes", &["jpg", "jpeg", "png", "webp"])
+            .set_title(tr!(
+                "Choose artwork",
+                "Elegir carátula",
+                "Choisir une pochette"
+            ))
+            .add_filter(
+                tr!("Images", "Imágenes", "Images"),
+                &["jpg", "jpeg", "png", "webp"],
+            )
             .pick_file()
         {
             PENDING.lock().unwrap().covers.push(path);
         }
     });
+}
+
+pub fn refresh_toolbar(_frame: &eframe::Frame) {
+    #[cfg(target_os = "macos")]
+    {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(handle) = _frame.window_handle() {
+            if let RawWindowHandle::AppKit(handle) = handle.as_raw() {
+                unsafe { pan_localize_glass_toolbar(handle.ns_view.as_ptr()) };
+            }
+        }
+    }
 }

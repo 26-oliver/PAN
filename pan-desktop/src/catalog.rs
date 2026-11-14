@@ -68,29 +68,49 @@ impl Default for Playback {
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct Settings {
+    pub ui_language: crate::locale::Language,
     pub language: String,
     pub subtitle_size: u32,
     pub keys: Vec<String>,
 }
 
-pub const SHORTCUTS: [(&str, &str); 9] = [
-    ("Reproducir / pausar", "Space"),
-    ("Pantalla completa", "F"),
-    ("Silenciar", "M"),
-    ("Retroceder 5 s", "ArrowLeft"),
-    ("Avanzar 5 s", "ArrowRight"),
-    ("Bajar volumen", "ArrowDown"),
-    ("Subir volumen", "ArrowUp"),
-    ("Anterior", "PageUp"),
-    ("Siguiente", "PageDown"),
+pub const SHORTCUT_KEYS: [&str; 9] = [
+    "Space",
+    "F",
+    "M",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowDown",
+    "ArrowUp",
+    "PageUp",
+    "PageDown",
 ];
+
+pub fn shortcut_labels() -> [&'static str; 9] {
+    [
+        tr!(
+            "Play / pause",
+            "Reproducir / pausar",
+            "Lire / mettre en pause"
+        ),
+        tr!("Fullscreen", "Pantalla completa", "Plein écran"),
+        tr!("Mute", "Silenciar", "Couper le son"),
+        tr!("Back 5 sec", "Retroceder 5 s", "Reculer de 5 s"),
+        tr!("Forward 5 sec", "Avanzar 5 s", "Avancer de 5 s"),
+        tr!("Volume down", "Bajar volumen", "Baisser le volume"),
+        tr!("Volume up", "Subir volumen", "Augmenter le volume"),
+        tr!("Previous", "Anterior", "Précédent"),
+        tr!("Next", "Siguiente", "Suivant"),
+    ]
+}
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            ui_language: crate::locale::Language::En,
             language: String::new(),
             subtitle_size: 16,
-            keys: SHORTCUTS.map(|(_, key)| key.to_owned()).to_vec(),
+            keys: SHORTCUT_KEYS.map(str::to_owned).to_vec(),
         }
     }
 }
@@ -116,12 +136,20 @@ impl Catalog {
                 Ok(data) => (data, None),
                 Err(err) => (
                     Data::default(),
-                    Some(format!("PAN no pudo leer sus datos: {err}")),
+                    Some(tf!(
+                        "PAN could not read its data: {err}",
+                        "PAN no pudo leer sus datos: {err}",
+                        "PAN n’a pas pu lire ses données : {err}"
+                    )),
                 ),
             },
             Some(Err(err)) if err.kind() != io::ErrorKind::NotFound => (
                 Data::default(),
-                Some(format!("PAN no pudo abrir sus datos: {err}")),
+                Some(tf!(
+                    "PAN could not open its data: {err}",
+                    "PAN no pudo abrir sus datos: {err}",
+                    "PAN n’a pas pu ouvrir ses données : {err}"
+                )),
             ),
             _ => (Data::default(), None),
         };
@@ -138,10 +166,13 @@ impl Catalog {
         if let Some(error) = &self.error {
             return Err(io::Error::other(error.clone()));
         }
-        let file = self
-            .file
-            .as_ref()
-            .ok_or_else(|| io::Error::other("Carpeta de datos no disponible"))?;
+        let file = self.file.as_ref().ok_or_else(|| {
+            io::Error::other(tr!(
+                "Data folder unavailable",
+                "Carpeta de datos no disponible",
+                "Dossier de données indisponible"
+            ))
+        })?;
         let folder = file.parent().unwrap_or(Path::new("."));
         let current = serde_json::to_value(&self.data).map_err(io::Error::other)?;
         if current == self.saved {

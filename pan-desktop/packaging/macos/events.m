@@ -1,6 +1,24 @@
 #import <AppKit/AppKit.h>
 #import <objc/runtime.h>
 
+extern int pan_ui_language(void);
+
+static NSString *pan_localized(NSString *en, NSString *es, NSString *fr) {
+    switch (pan_ui_language()) {
+        case 1: return es;
+        case 2: return fr;
+        default: return en;
+    }
+}
+
+static NSString *pan_toolbar_label(NSString *identifier) {
+    if ([identifier isEqualToString:@"pan.open"]) return pan_localized(@"Open file", @"Abrir archivo", @"Ouvrir un fichier");
+    if ([identifier isEqualToString:@"pan.url"]) return pan_localized(@"Open URL", @"Abrir URL", @"Ouvrir une URL");
+    if ([identifier isEqualToString:@"pan.library"]) return pan_localized(@"Library", @"Biblioteca", @"Bibliothèque");
+    if ([identifier isEqualToString:@"pan.queue"]) return pan_localized(@"Queue", @"Cola", @"File d’attente");
+    return @"PAN";
+}
+
 extern void pan_open_path(const char *path, int kind);
 
 static void pan_receive_files(id self, SEL command, NSApplication *app, NSArray<NSString *> *files) {
@@ -46,7 +64,7 @@ void pan_pick_file(int kind) {
         panel.canChooseFiles = kind != 3;
         panel.canChooseDirectories = kind == 3;
         panel.allowsMultipleSelection = kind == 0 || kind == 2;
-        panel.title = kind == 1 ? @"Abrir subtítulos" : kind == 2 ? @"Añadir a PAN" : kind == 3 ? @"Elegir ubicación de la biblioteca" : kind == 4 ? @"Elegir carátula" : @"Abrir archivo";
+        panel.title = kind == 1 ? pan_localized(@"Open subtitles", @"Abrir subtítulos", @"Ouvrir des sous-titres") : kind == 2 ? pan_localized(@"Add to PAN", @"Añadir a PAN", @"Ajouter à PAN") : kind == 3 ? pan_localized(@"Choose library location", @"Elegir ubicación de la biblioteca", @"Choisir l’emplacement de la bibliothèque") : kind == 4 ? pan_localized(@"Choose artwork", @"Elegir carátula", @"Choisir une pochette") : pan_localized(@"Open file", @"Abrir archivo", @"Ouvrir un fichier");
         [panel beginWithCompletionHandler:^(NSModalResponse response) {
             if (response != NSModalResponseOK) return;
             for (NSURL *url in panel.URLs) {
@@ -87,16 +105,16 @@ extern void pan_toolbar_action(int index);
 
     NSString *symbol;
     if ([identifier isEqualToString:@"pan.open"]) {
-        item.label = @"Abrir archivo";
+        item.label = pan_toolbar_label(identifier);
         symbol = @"folder";
     } else if ([identifier isEqualToString:@"pan.url"]) {
-        item.label = @"Abrir URL";
+        item.label = pan_toolbar_label(identifier);
         symbol = @"link";
     } else if ([identifier isEqualToString:@"pan.library"]) {
-        item.label = @"Biblioteca";
+        item.label = pan_toolbar_label(identifier);
         symbol = @"square.grid.2x2";
     } else if ([identifier isEqualToString:@"pan.queue"]) {
-        item.label = @"Cola";
+        item.label = pan_toolbar_label(identifier);
         symbol = @"list.bullet";
     } else {
         return nil;
@@ -138,4 +156,14 @@ int pan_install_glass_toolbar(void *viewPointer) {
         return 1;
     }
     return 0;
+}
+
+
+void pan_localize_glass_toolbar(void *viewPointer) {
+    NSView *view = (__bridge NSView *)viewPointer;
+    for (NSToolbarItem *item in view.window.toolbar.items) {
+        item.label = pan_toolbar_label(item.itemIdentifier);
+        item.toolTip = item.label;
+        [item.image setAccessibilityDescription:item.label];
+    }
 }

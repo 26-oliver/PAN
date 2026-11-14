@@ -28,7 +28,7 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Vídeo</string>
+			<string>Video</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>

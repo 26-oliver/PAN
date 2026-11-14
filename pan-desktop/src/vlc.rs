@@ -120,7 +120,11 @@ impl Player {
                 Err(error) => errors.push(format!("{}: {error}", path.display())),
             }
         }
-        let message = "Instala VLC 3 de VideoLAN para activar la reproducción.";
+        let message = tr!(
+            "Install VideoLAN VLC 3 to enable playback.",
+            "Instala VLC 3 de VideoLAN para activar la reproducción.",
+            "Installez VLC 3 de VideoLAN pour activer la lecture."
+        );
         eprintln!("PAN · LibVLC: {}", errors.join("\n"));
         Err(message.into())
     }
@@ -129,7 +133,11 @@ impl Player {
         let api = Api::load(path).map_err(|error| error.to_string())?;
         let version = CStr::from_ptr((api.get_version)()).to_string_lossy();
         if !version.starts_with("3.") {
-            return Err(format!("LibVLC {version}; PAN usa la ABI 3."));
+            return Err(tf!(
+                "LibVLC {version}; PAN requires ABI version 3.",
+                "LibVLC {version}; PAN usa la ABI 3.",
+                "LibVLC {version} ; PAN nécessite l’ABI 3."
+            ));
         }
 
         #[cfg(any(target_os = "macos", windows))]
@@ -162,11 +170,20 @@ impl Player {
             size.as_c_str(),
         ];
         let pointers = flags.map(CStr::as_ptr);
-        let instance = NonNull::new((api.new)(pointers.len() as c_int, pointers.as_ptr()))
-            .ok_or("No se inició LibVLC.")?;
+        let instance =
+            NonNull::new((api.new)(pointers.len() as c_int, pointers.as_ptr())).ok_or(tr!(
+                "Could not start LibVLC.",
+                "No se inició LibVLC.",
+                "Impossible de démarrer LibVLC."
+            ))?;
         let Some(player) = NonNull::new((api.media_player_new)(instance.as_ptr())) else {
             (api.release)(instance.as_ptr());
-            return Err("No se inició el reproductor.".into());
+            return Err(tr!(
+                "Could not start the player.",
+                "No se inició el reproductor.",
+                "Impossible de démarrer le lecteur."
+            )
+            .into());
         };
         let mut frames: Box<Frames> = Box::default();
         (api.video_set_callbacks)(
@@ -186,13 +203,24 @@ impl Player {
     }
 
     pub fn open(&self, url: &url::Url) -> Result<(), String> {
-        let location = CString::new(url.as_str()).map_err(|_| "Dirección inválida.")?;
+        let location = CString::new(url.as_str()).map_err(|_| {
+            tr!(
+                "Invalid address.",
+                "Dirección inválida.",
+                "Adresse non valide."
+            )
+        })?;
         unsafe {
             (self.api.media_player_stop)(self.player.as_ptr());
             self.frames.lock().unwrap().take();
             let media = (self.api.media_new_location)(self.instance.as_ptr(), location.as_ptr());
             if media.is_null() {
-                return Err("No se pudo abrir el medio.".into());
+                return Err(tr!(
+                    "Could not open media.",
+                    "No se pudo abrir el medio.",
+                    "Impossible d’ouvrir le média."
+                )
+                .into());
             }
             (self.api.media_player_set_media)(self.player.as_ptr(), media);
             (self.api.media_release)(media);
@@ -205,7 +233,12 @@ impl Player {
         if result == 0 {
             Ok(())
         } else {
-            Err("No se pudo iniciar la reproducción.".into())
+            Err(tr!(
+                "Could not start playback.",
+                "No se pudo iniciar la reproducción.",
+                "Impossible de démarrer la lecture."
+            )
+            .into())
         }
     }
 
@@ -281,7 +314,7 @@ impl Player {
             let mut cursor = head;
             while let Some(track) = cursor.as_ref() {
                 let name = if track.name.is_null() {
-                    format!("Pista {}", track.id)
+                    tf!("Track {}", "Pista {}", "Piste {}"; track.id)
                 } else {
                     CStr::from_ptr(track.name).to_string_lossy().into_owned()
                 };
