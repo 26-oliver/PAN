@@ -1,0 +1,82 @@
+name: PAN Desktop
+
+on:
+  push:
+    branches: [master, 'codex/pan-desktop-*']
+    paths: ['pan-desktop/**', '.github/workflows/pan-desktop.yml']
+  pull_request:
+    paths: ['pan-desktop/**', '.github/workflows/pan-desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, macos-26-intel, windows-2022, ubuntu-22.04]
+    defaults:
+      run:
+        working-directory: pan-desktop
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install VLC and build dependencies on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y vlc libxkbcommon-dev pkg-config
+      - name: Install VLC on macOS
+        if: runner.os == 'macOS'
+        run: brew install --cask vlc
+      - name: Extract VLC on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '3.0.23'
+          $archive = Join-Path $env:RUNNER_TEMP 'vlc.zip'
+          Invoke-WebRequest "https://download.videolan.org/pub/videolan/vlc/$version/win64/vlc-$version-win64.zip" -OutFile $archive
+          Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
+          $library = Join-Path $env:RUNNER_TEMP "vlc-$version/libvlc.dll"
+          if (!(Test-Path -LiteralPath $library)) { throw 'libvlc.dll missing from VLC archive' }
+          "PAN_LIBVLC=$library" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Run local library and playback checks
+        run: |
+          rustup toolchain install stable --profile minimal
+          cargo +stable test --locked --release -- --include-ignored
+      - name: Build release
+        run: cargo +stable build --locked --release
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: |
+          ./packaging/macos/package.sh dist/PAN.app
+          ditto -c -k --norsrc --keepParent dist/PAN.app dist/PAN-macOS.zip
+          ditto -x -k dist/PAN-macOS.zip dist/verify
+          codesign --verify --deep --strict dist/verify/PAN.app
+          rm -rf dist/PAN.app dist/verify
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir dist
+          tar -czf dist/PAN-Linux-x86_64.tar.gz --transform='s|.*/||' \
+            target/release/pan packaging/linux/install.sh packaging/linux/pan.desktop \
+            assets/pan.png assets/Geist-OFL.txt README.md CONTRIBUTORS.md
+          tar -tzf dist/PAN-Linux-x86_64.tar.gz
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist
+          Compress-Archive -Path target/release/pan.exe, packaging/windows/install.ps1, assets/pan.ico, assets/Geist-OFL.txt, README.md, CONTRIBUTORS.md -DestinationPath dist/PAN-Windows-x64.zip
+      - uses: actions/upload-artifact@v5
+        with:
+          name: PAN-${{ matrix.os }}
+          path: pan-desktop/dist/*
+          if-no-files-found: error

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PAN
+GenericName=Reproductor multimedia
+Comment=Play Anything Now
+Exec=pan %F
+Icon=pan
+Terminal=false
+Categories=AudioVideo;Player;
+MimeType=video/mp4;video/x-m4v;video/quicktime;video/x-matroska;video/webm;video/x-msvideo;video/mpeg;video/mp2t;video/x-ms-wmv;video/ogg;audio/mpeg;audio/mp4;audio/wav;audio/x-wav;audio/flac;audio/ogg;audio/opus;audio/aac;audio/x-aiff;audio/x-ms-wma;
+StartupNotify=true

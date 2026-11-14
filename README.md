@@ -1,3 +1,11 @@
+# PAN · Play Anything Now
+
+El reproductor de escritorio en Rust está en [pan-desktop](pan-desktop/README.md). Allí están los requisitos de instalación y compilación, junto con los [créditos de PAN Desktop](pan-desktop/CONTRIBUTORS.md).
+
+El repositorio conserva el fork de VLC. A continuación está su documentación de origen.
+
+---
+
 # VLC media player
 
 **VLC** is a libre and open source **media player** and **multimedia engine**,
