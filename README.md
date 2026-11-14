@@ -1,12 +1,4 @@
-# PAN · Play Anything Now
-
-El reproductor de escritorio en Rust está en [pan-desktop](pan-desktop/README.md). Allí están los requisitos de instalación y compilación, junto con los [créditos de PAN Desktop](pan-desktop/CONTRIBUTORS.md).
-
-El repositorio conserva el fork de VLC. A continuación está su documentación de origen.
-
----
-
-# VLC media player
+# PAN · Play Anything Now\n\nPAN is a desktop media player for macOS, Windows and Linux. Open a file straight from your file manager, or keep an independent copy in your local library. The desktop app is written in Rust and uses VideoLAN’s LibVLC 3 for playback.\n\n[Download PAN](https://github.com/26-oliver/PAN/releases) · [Installation and user guide](pan-desktop/README.md) · [Contributors](pan-desktop/CONTRIBUTORS.md)\n\nThe PAN Desktop application lives in `pan-desktop/`. The remainder of this repository contains the VLC fork.\n\n---\n\n# VLC media player
 
 **VLC** is a libre and open source **media player** and **multimedia engine**,
 focused on **playing everything**, and **running everywhere**.

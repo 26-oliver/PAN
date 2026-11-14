@@ -1,6 +1,6 @@
-# Contribuciones a PAN Desktop
+# PAN Desktop contributors
 
-- [26-oliver](https://github.com/26-oliver): dirección del proyecto y diseño de producto.
-- [Codex de OpenAI](https://openai.com/codex/): implementación del reproductor en Rust, interfaz, biblioteca, empaquetado y comprobaciones.
+- [26-oliver](https://github.com/26-oliver) — project direction and product design.
+- [OpenAI Codex](https://openai.com/codex/) — Rust desktop implementation, playback integration, library, packaging and verification.
 
-PAN Desktop usa el motor LibVLC de VideoLAN. Los créditos del código del fork se conservan en [AUTHORS](../AUTHORS) y [THANKS](../THANKS).
+PAN Desktop uses VideoLAN's LibVLC engine. See [AUTHORS](../AUTHORS) and [THANKS](../THANKS) for credits associated with the VLC fork.

@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 prefix="${HOME}/.local"
 data="${XDG_DATA_HOME:-$prefix/share}"
 install -D -m 755 pan "$prefix/bin/pan"
-install -D -m 644 pan.png "$data/icons/hicolor/160x160/apps/pan.png"
+install -D -m 644 pan.png "$data/icons/hicolor/192x192/apps/pan.png"
 install -d "$data/applications"
 escaped=$(printf '%s' "$prefix/bin/pan" | sed 's/%/%%/g; s/"/\\"/g')
 while IFS= read -r line; do
